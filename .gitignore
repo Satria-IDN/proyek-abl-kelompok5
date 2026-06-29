@@ -1,0 +1,14 @@
+# Folder library (ukurannya besar dan otomatis terisi saat instalasi)
+node_modules/
+
+# File konfigurasi rahasia (berisi password/database URL)
+.env
+.env.local
+
+# File log error bawaan sistem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Folder pengaturan editor lokal
+.vscode/    
