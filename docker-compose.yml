@@ -11,7 +11,19 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data_volume:/var/lib/mysql
+      - mysql_data_fresh:/var/lib/mysql
+
+  # 🐳 phpMyAdmin Resmi Docker (Port 8080)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin_proyek_abl
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db_utama
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
 
 volumes:
-  mysql_data_volume:
+  mysql_data_fresh:
