@@ -11,6 +11,26 @@ const pool = mysql.createPool({
     host: 'localhost', user: 'root', password: 'rootpassword', database: 'db_layanan_mahasiswa'
 });
 
+const cron = require('node-cron');
+
+// Robot Background Worker: Berjalan otomatis setiap jam 00:00 tengah malam
+cron.schedule('* * * * *', async () => {
+  console.log('[CRON JOB] Memulai pengecekan otomatis tanggal konseling...');
+  try {
+    const updateSql = `
+    UPDATE konseling 
+    SET status_solusi = 'Selesai' 
+    WHERE tanggal_konseling < CURDATE() AND status_solusi = 'Diproses'
+    `;
+    
+    // Jalankan perintah ke database kamu
+    const [result] = await db.query(updateSql); // sesuaikan dengan variabel koneksi DB kamu
+    console.log(`[CRON JOB] Sukses! ${result.affectedRows} riwayat konseling kadaluwarsa telah diubah ke 'Selesai'.`);
+  } catch (error) {
+    console.error('[CRON JOB] Gagal mengeksekusi pembersihan otomatis:', error);
+  }
+});
+
 app.get('/api/konseling/:nim', async (req, res) => {
     try {
         const { nim } = req.params;

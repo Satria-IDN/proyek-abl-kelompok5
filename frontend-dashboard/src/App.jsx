@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { User, CreditCard, Code, GraduationCap, ShieldCheck, Users, MessageCircle } from 'lucide-react';
+import { User, CreditCard, Code, GraduationCap, ShieldCheck, Users, MessageCircle, Lock } from 'lucide-react';
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('admin_login_status') === 'true';
+  });
+  
+  // State untuk pop-up konfirmasi logout
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  // === STATE UTAMA JALUR DATA (TETAP AMAN) ===
   const [activeTab, setActiveTab] = useState('status');
   const [nim, setNim] = useState('20240801048'); // Default NIM kamu untuk mempermudah demo
   
@@ -34,6 +46,19 @@ function App() {
   const showAlert = (type, text) => {
     setStatusMsg({ type, text });
     setTimeout(() => setStatusMsg({ type: '', text: '' }), 5000);
+  };
+
+  // === HANDLER TRIK A: VALIDASI LOGIN ADMIN ===
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (username === 'admin' && password === 'admin123') {
+      localStorage.setItem('admin_login_status', 'true');
+      setIsLoggedIn(true);
+      setLoginError('');
+      showAlert('success', 'Otentikasi Berhasil! Selamat datang di Portal Utama Admin.');
+    } else {
+      setLoginError('Kredensial Salah! Hanya Admin Kelompok 5 yang diizinkan masuk.');
+    }
   };
 
   // 1. Core Service: Cek Status Mahasiswa
@@ -139,7 +164,7 @@ function App() {
       if (data.success) {
         showAlert('success', data.message);
         setInputJabatan('Anggota');
-        handleFetchUkm(); // Tarik data ulang biar langsung muncul di list bawah
+        handleFetchUkm(); 
       } else { showAlert('error', data.message); }
     } catch (err) { showAlert('error', 'Gagal mendaftar UKM via Gateway.'); }
     finally { setLoading(false); }
@@ -166,23 +191,61 @@ function App() {
         headers: { 'Content-Type': 'application/json', 'x-api-key': 'kelompok5_super_secret_key' },
         body: JSON.stringify({ nim, keluhan: inputKeluhan, tanggal_konseling: inputTanggal })
       });
-      const data = await res.json();
+      const data = await response.json();
       if (data.success) {
         showAlert('success', data.message);
         setInputKeluhan(''); setInputTanggal('');
-        handleFetchKonseling(); // Tarik data ulang biar langsung muncul di list bawah
+        handleFetchKonseling(); 
       } else { showAlert('error', data.message); }
     } catch (err) { showAlert('error', 'Gagal mengirim booking konseling.'); }
     finally { setLoading(false); }
   };
 
-  // Sinkronisasi otomatis data saat tab dipindah atau NIM diganti
   useEffect(() => {
     if (activeTab === 'beasiswa') handleFetchBeasiswa();
     if (activeTab === 'ukm') handleFetchUkm();
     if (activeTab === 'konseling') handleFetchKonseling();
   }, [activeTab, nim]);
 
+  // === RENDERING TRIK A: JIKA BELUM LOGIN, TAMPILKAN KOTAK PINTU MASUK ADMIN ===
+  if (!isLoggedIn) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#0f172a', fontFamily: 'Segoe UI, sans-serif' }}>
+        <form onSubmit={handleLogin} style={{ backgroundColor: '#ffffff', padding: '40px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)' }}>
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <div style={{ display: 'inline-flex', padding: '12px', backgroundColor: '#eff6ff', borderRadius: '50%', marginBottom: '12px' }}>
+              <Lock size={28} color="#2563eb" />
+            </div>
+            <h2 style={{ color: '#1e3a8a', margin: '0 0 6px 0', fontSize: '24px', fontWeight: '700' }}>Kelompok 5 SOA</h2>
+            <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Sistem Layanan Otoritas Management Admin</p>
+          </div>
+          
+          {loginError && (
+            <div style={{ backgroundColor: '#fee2e2', color: '#ef4444', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', fontWeight: '500', textAlign: 'center', border: '1px solid #fca5a5' }}>
+              {loginError}
+            </div>
+          )}
+          
+          <div style={{ marginBottom: '18px' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Username Admin</label>
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Contoh: admin" style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', color: '#1f2937', backgroundColor: '#fff', fontSize: '14px' }} required />
+          </div>
+          
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Password Sistem</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', color: '#1f2937', backgroundColor: '#fff', fontSize: '14px' }} required />
+          </div>
+          
+          <button type="submit" style={{ width: '100%', padding: '12px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '15px', boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)' }}>Masuk Sebagai Admin</button>
+          <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', color: '#94a3b8', borderTop: '1px dashed #e2e8f0', paddingTop: '12px' }}>
+            Akses Demo: <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>admin</code> / <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>admin123</code>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // === JIKA SUDAH LOGIN, DASHBOARD UTAMA AKAN TERBUKA PENUH ===
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Segoe UI, sans-serif', backgroundColor: '#f3f4f6', color: '#1f2937' }}>
       
@@ -192,7 +255,7 @@ function App() {
           <ShieldCheck size={32} color="#60a5fa" />
           <div>
             <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Kelompok 5</h2>
-            <p style={{ fontSize: '12px', color: '#93c5fd', margin: 0 }}>SOA & Microservices UI</p>
+            <p style={{ fontSize: '12px', color: '#93c5fd', margin: 0 }}>Sistem Portal Admin SOA</p>
           </div>
         </div>
 
@@ -214,11 +277,39 @@ function App() {
         <button onClick={() => setActiveTab('konseling')} style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: activeTab === 'konseling' ? '#3b82f6' : 'transparent', color: '#fff', cursor: 'pointer', textAlign: 'left', fontWeight: '500' }}>
           <MessageCircle size={20} /> Bimbingan Konseling
         </button>
+        
+        {/* BUTTON LOGOUT BARU */}
+        <button 
+          onClick={() => setShowLogoutModal(true)} 
+          style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px', borderRadius: '8px', border: '1px dashed #ef4444', backgroundColor: 'transparent', color: '#fca5a5', cursor: 'pointer', textAlign: 'left', fontWeight: '500', marginTop: 'auto' }}
+        >
+          🔒 Keluar Log Admin
+        </button>
       </div>
 
       {/* MAIN CONTENT AREA */}
       <div style={{ flex: 1, padding: '40px', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ width: '100%', maxWidth: '800px' }}>
+
+          {/* METRIK RINGKASAN DATABASE */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
+            <div style={{ backgroundColor: '#ffffff', padding: '18px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', borderLeft: '4px solid #2563eb' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Mahasiswa</div>
+              <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginTop: '4px' }}>3 Record</div>
+            </div>
+            <div style={{ backgroundColor: '#ffffff', padding: '18px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', borderLeft: '4px solid #ef4444' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tunggakan Denda</div>
+              <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginTop: '4px' }}>Rp 500.000</div>
+            </div>
+            <div style={{ backgroundColor: '#ffffff', padding: '18px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', borderLeft: '4px solid #f59e0b' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kasus Konseling</div>
+              <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginTop: '4px' }}>1 Pending</div>
+            </div>
+            <div style={{ backgroundColor: '#ffffff', padding: '18px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', borderLeft: '4px solid #10b981' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Lembaga UKM</div>
+              <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginTop: '4px' }}>2 Cabang</div>
+            </div>
+          </div>
 
           {/* GLOBAL NIM INPUT BAR */}
           <div style={{ background: '#ffffff', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
@@ -296,7 +387,7 @@ function App() {
 
           {/* TAB 3: XML SERVICE */}
           {activeTab === 'xml' && (
-            <div style={{ background: '#ffffff', padding: '32px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center' }}>
+            <div style={{ background: '#ffffff', padding: '#32px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center' }}>
               <h3 style={{ fontSize: '22px', marginTop: 0, marginBottom: '8px' }}>Interkomunikasi Format XML</h3>
               <p style={{ color: '#6b7280', marginBottom: '24px' }}>Mentransformasikan data SQL relasional menjadi skema dokumen markup XML sesuai requirement.</p>
               <button onClick={handleFetchXML} style={{ padding: '12px 24px', backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Generate Dokumen XML</button>
@@ -336,7 +427,7 @@ function App() {
             </div>
           )}
 
-          {/* TAB 5: LAYANAN UKM (DENGAN FORM PENDAFTARAN AKTIF) */}
+          {/* TAB 5: LAYANAN UKM */}
           {activeTab === 'ukm' && (
             <div style={{ background: '#ffffff', padding: '32px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center' }}>
               <h3 style={{ fontSize: '22px', marginTop: 0, marginBottom: '8px' }}>Layanan Terintegrasi: Unit Kegiatan Mahasiswa</h3>
@@ -349,8 +440,8 @@ function App() {
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#14532d', marginBottom: '6px' }}>Pilih UKM Target:</label>
                     <select value={selectedUkmId} onChange={(e) => setSelectedUkmId(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ccd1d9', backgroundColor: '#ffffff', color: '#1f2937', fontSize: '14px', fontWeight: '500', outline: 'none', cursor: 'pointer' }}>
-                      <option value="1" style={{ color: '#1f2937', backgroundColor: '#ffffff' }}>UKM Programming & Data Science</option>
-                      <option value="2" style={{ color: '#1f2937', backgroundColor: '#ffffff' }}>UKM E-Sports Esa Unggul</option>
+                      <option value="1">UKM Programming & Data Science</option>
+                      <option value="2">UKM E-Sports Esa Unggul</option>
                     </select>
                   </div>
                   <div>
@@ -380,7 +471,7 @@ function App() {
             </div>
           )}
 
-          {/* TAB 6: LAYANAN KONSELING (DENGAN FORM BOOKING AKTIF) */}
+          {/* TAB 6: LAYANAN KONSELING */}
           {activeTab === 'konseling' && (
             <div style={{ background: '#ffffff', padding: '32px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center' }}>
               <h3 style={{ fontSize: '22px', marginTop: 0, marginBottom: '8px' }}>Layanan Terintegrasi: Bimbingan Konseling</h3>
@@ -396,7 +487,8 @@ function App() {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#7f1d1d', marginBottom: '6px' }}>Rencana Tanggal Pertemuan:</label>
-                      <input type="date" value={inputTanggal} onChange={(e) => setInputTanggal(e.target.value)} onClick={(e) => e.target.showPicker()} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ccd1d9', backgroundColor: '#ffffff',color: '#1f2937', fontSize: '14px', outline: 'none',cursor: 'pointer'}} />                  </div>
+                    <input type="date" value={inputTanggal} onChange={(e) => setInputTanggal(e.target.value)} onClick={(e) => e.target.showPicker()} style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ccd1d9', backgroundColor: '#ffffff', color: '#1f2937', fontSize: '14px', outline: 'none', cursor: 'pointer' }} />
+                  </div>
                   <button type="submit" style={{ padding: '12px', backgroundColor: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', marginTop: '4px', boxShadow: '0 2px 4px rgba(220,38,38,0.2)' }}>Kirim Pengajuan Jadwal</button>
                 </form>
               </div>
@@ -423,6 +515,45 @@ function App() {
 
         </div>
       </div>
+
+      {/* 🌟 BLOK CODINGAN UNTUK MEMUNCULKAN POP-UP POP-UP MODAL LOGOUT NYATA DI LAYAR 🌟 */}
+      {showLogoutModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
+          <div style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '16px', width: '90%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', textAlign: 'center' }}>
+            
+            {/* Ikon Gembok Merah */}
+            <div style={{ display: 'inline-flex', padding: '14px', backgroundColor: '#fee2e2', borderRadius: '50%', marginBottom: '16px' }}>
+              <Lock size={28} color="#ef4444" />
+            </div>
+            
+            {/* Judul & Deskripsi */}
+            <h3 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '20px', fontWeight: '700' }}>Konfirmasi Keluar</h3>
+            <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '14px', lineHeight: '1.5' }}>Apakah anda yakin ingin keluar akun?</p>
+            
+            {/* Dua Tombol Konfirmasi Dinamis */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setShowLogoutModal(false)} 
+                style={{ flex: 1, padding: '12px', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}
+              >
+                Batal
+              </button>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('admin_login_status');
+                  setIsLoggedIn(false);
+                  setShowLogoutModal(false);
+                }} 
+                style={{ flex: 1, padding: '12px', backgroundColor: '#ef4444', color: '#ffffff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)' }}
+              >
+                Ya, Keluar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

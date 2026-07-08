@@ -1,6 +1,6 @@
 module.exports = {
   apps: [
-    { name: '0-auth-service', script: 'index.js', cwd: './auth-service', watch: true }, // 👈 TAMBAHKAN BARIS INI
+    { name: '0-auth-service', script: 'index.js', cwd: './auth-service', watch: true }, 
     { name: '1-api-gateway', script: 'index.js', cwd: './api-gateway', watch: true },
     { name: '2-student-service', script: 'index.js', cwd: './student-service', watch: true },
     { name: '3-fine-service', script: 'index.js', cwd: './fine-service', watch: true },
